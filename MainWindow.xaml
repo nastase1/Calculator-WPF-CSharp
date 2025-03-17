@@ -1,0 +1,412 @@
+﻿<Window x:Class="Calculator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Calculator.VM"
+        xmlns:local1="clr-namespace:Calculator"
+        mc:Ignorable="d"
+        Title="Calculator" Height="550" Width="350"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+
+    <Window.DataContext>
+        <local:CalculatorViewModel/>
+    </Window.DataContext>
+
+    <!-- KeyBindings (același set ca înainte) -->
+    <Window.InputBindings>
+        <!-- Taste pentru cifre -->
+        <KeyBinding Key="D0" Command="{Binding DigitCommand}" CommandParameter="0"/>
+        <KeyBinding Key="D1" Command="{Binding DigitCommand}" CommandParameter="1"/>
+        <KeyBinding Key="D2" Command="{Binding DigitCommand}" CommandParameter="2"/>
+        <KeyBinding Key="D3" Command="{Binding DigitCommand}" CommandParameter="3"/>
+        <KeyBinding Key="D4" Command="{Binding DigitCommand}" CommandParameter="4"/>
+        <KeyBinding Key="D5" Command="{Binding DigitCommand}" CommandParameter="5"/>
+        <KeyBinding Key="D6" Command="{Binding DigitCommand}" CommandParameter="6"/>
+        <KeyBinding Key="D7" Command="{Binding DigitCommand}" CommandParameter="7"/>
+        <KeyBinding Key="D8" Command="{Binding DigitCommand}" CommandParameter="8"/>
+        <KeyBinding Key="D9" Command="{Binding DigitCommand}" CommandParameter="9"/>
+
+        <KeyBinding Key="NumPad0" Command="{Binding DigitCommand}" CommandParameter="0"/>
+        <KeyBinding Key="NumPad1" Command="{Binding DigitCommand}" CommandParameter="1"/>
+        <KeyBinding Key="NumPad2" Command="{Binding DigitCommand}" CommandParameter="2"/>
+        <KeyBinding Key="NumPad3" Command="{Binding DigitCommand}" CommandParameter="3"/>
+        <KeyBinding Key="NumPad4" Command="{Binding DigitCommand}" CommandParameter="4"/>
+        <KeyBinding Key="NumPad5" Command="{Binding DigitCommand}" CommandParameter="5"/>
+        <KeyBinding Key="NumPad6" Command="{Binding DigitCommand}" CommandParameter="6"/>
+        <KeyBinding Key="NumPad7" Command="{Binding DigitCommand}" CommandParameter="7"/>
+        <KeyBinding Key="NumPad8" Command="{Binding DigitCommand}" CommandParameter="8"/>
+        <KeyBinding Key="NumPad9" Command="{Binding DigitCommand}" CommandParameter="9"/>
+
+        <!-- Operanzi -->
+        <KeyBinding Key="Add" Command="{Binding OperationCommand}" CommandParameter="+"/>
+        <KeyBinding Key="Subtract" Command="{Binding OperationCommand}" CommandParameter="-"/>
+        <KeyBinding Key="Multiply" Command="{Binding OperationCommand}" CommandParameter="×"/>
+        <KeyBinding Key="Divide" Command="{Binding OperationCommand}" CommandParameter="÷"/>
+        <!-- Punctul zecimal -->
+        <KeyBinding Key="OemPeriod" Command="{Binding DecimalCommand}" CommandParameter="."/>
+        <KeyBinding Key="Decimal" Command="{Binding DecimalCommand}" CommandParameter="."/>
+        <!-- Egal -->
+        <KeyBinding Key="Return" Command="{Binding EqualsCommand}"/>
+        <KeyBinding Key="Enter" Command="{Binding EqualsCommand}"/>
+        <!-- Backspace, Esc și Delete -->
+        <KeyBinding Key="Back" Command="{Binding BackspaceCommand}"/>
+        <KeyBinding Key="Esc" Command="{Binding ClearEntryCommand}"/>
+        <KeyBinding Key="Delete" Command="{Binding ClearCommand}"/>
+    </Window.InputBindings>
+
+    <Window.Resources>
+        <!-- Converter pentru inversare booleana -->
+        <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <!-- Stiluri -->
+        <Style x:Key="CalcButtonStyle" TargetType="Button">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Background" Value="#FF2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#FF3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FF3E3E42"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#FF4E4E54"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="EqualsButtonStyle" TargetType="Button" BasedOn="{StaticResource CalcButtonStyle}">
+            <Setter Property="Background" Value="#FF0078D7"/>
+            <Setter Property="BorderBrush" Value="#FF0078D7"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FF0063B1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#FF005A9E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DisplayStyle" TargetType="TextBox">
+            <Setter Property="FontSize" Value="36"/>
+            <Setter Property="Margin" Value="10,0,10,10"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Background" Value="#FF1E1E1E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+        </Style>
+
+        <Style x:Key="PreviousStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Foreground" Value="#FFA0A0A0"/>
+            <Setter Property="Margin" Value="10,10,10,0"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Meniul de sus -->
+        <Menu DockPanel.Dock="Top" Background="#FF3E3E42">
+            <MenuItem Header="File" Foreground="White">
+                <MenuItem Header="Cut" Command="{Binding CutCommand}" Background="#FF3E3E42" Foreground="White"/>
+                <MenuItem Header="Copy" Command="{Binding CopyCommand}" Background="#FF3E3E42" Foreground="White"/>
+                <MenuItem Header="Paste" Command="{Binding PasteCommand}" Background="#FF3E3E42" Foreground="White"/>
+ 
+                <!-- Submeniu pentru moduri -->
+                <MenuItem Header="Mode"
+                          Background="#FF3E3E42" Foreground="White">
+                    <MenuItem Header="Standard" 
+                              IsCheckable="True"
+                              
+                              IsChecked="{Binding IsProgrammerMode, Converter={StaticResource InverseBooleanConverter}, Mode=TwoWay}"
+                              Command="{Binding StandardModeCommand}"
+                              Background="#FF3E3E42" Foreground="White"/>
+                    <MenuItem Header="Programmer" 
+                              IsCheckable="True"
+                              
+                              IsChecked="{Binding IsProgrammerMode, Mode=TwoWay}"
+                              Command="{Binding ProgrammerModeCommand}"
+                              Background="#FF3E3E42" Foreground="White"/>
+                </MenuItem>
+                <MenuItem Header="Digit Grouping" 
+                          IsCheckable="True"
+                          IsChecked="{Binding IsDigitGroupingEnabled, Mode=TwoWay}"
+                          Background="#FF3E3E42" Foreground="White"/>
+            </MenuItem>
+            <MenuItem Header="Help" Foreground="White">
+                <MenuItem Header="About" Command="{Binding AboutCommand}" Background="#FF3E3E42" Foreground="White"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Conținutul principal -->
+        <Grid Background="#FF1E1E1E">
+            <!-- Vom avea două panouri: StandardPanel și ProgrammerPanel -->
+            <Grid>
+                <!-- Standard Panel -->
+                <Grid x:Name="StandardPanel" Visibility="{Binding IsProgrammerMode, Converter={StaticResource InverseBooleanConverter}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!-- rând 0: Hamburger + PreviousExpression -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- rând 1: Display -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- rând 2: Butoane memorie -->
+                        <RowDefinition Height="*"/>
+                        <!-- rând 3: Butoanele calculatorului -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Rând 0: PreviousExpression -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- Buton Hamburger (pentru a deschide un eventual meniu lateral programmer) -->
+                        <!-- Previous Expression -->
+                        <TextBlock x:Name="PreviousExpression"
+                                   Grid.Column="1"
+                                   Text="{Binding PreviousExpression, Mode=OneWay}"
+                                   Style="{StaticResource PreviousStyle}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Rând 1: Display -->
+                    <TextBox x:Name="Display"
+                             Grid.Row="1"
+                             Style="{StaticResource DisplayStyle}"
+                             Text="{Binding Display, Mode=OneWay}"/>
+
+                    <!-- Rând 2: Butoane Memorie -->
+                    <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center">
+                        <Button Content="MC"
+                                Width="45"
+                                Command="{Binding MemoryClearCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Content="M+"
+                                Width="45"
+                                Command="{Binding MemoryAddCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Content="M-"
+                                Width="45"
+                                Command="{Binding MemoryRemoveCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Content="MS"
+                                Width="45"
+                                Command="{Binding MemoryStoreCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Content="MR"
+                                Width="45"
+                                Command="{Binding MemoryRecallCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button x:Name="MemoryButton"
+                                Content="M>"
+                                Width="45"
+                                Command="{Binding ToggleMemoryPanelCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                    </StackPanel>
+
+                    <!-- Rând 3: Butoanele Calculatorului -->
+                    <Grid Grid.Row="3" Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Rând 0: %, CE, C, ⌫ -->
+                        <Button Grid.Row="0" Grid.Column="0" Content="%"
+                                Command="{Binding PercentCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="0" Grid.Column="1" Content="CE"
+                                Command="{Binding ClearEntryCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="0" Grid.Column="2" Content="C"
+                                Command="{Binding ClearCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="0" Grid.Column="3" Content="⌫"
+                                Command="{Binding BackspaceCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+
+                        <!-- Rând 1: 1/x, x², √x, ÷ -->
+                        <Button Grid.Row="1" Grid.Column="0" Content="1/x"
+                                Command="{Binding UnaryCommand}"
+                                CommandParameter="1/x"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="1" Grid.Column="1" Content="x²"
+                                Command="{Binding UnaryCommand}"
+                                CommandParameter="x²"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="1" Grid.Column="2" Content="√x"
+                                Command="{Binding UnaryCommand}"
+                                CommandParameter="√x"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="1" Grid.Column="3" Content="÷"
+                                Command="{Binding OperationCommand}"
+                                CommandParameter="÷"
+                                Style="{StaticResource CalcButtonStyle}"/>
+
+                        <!-- Rând 2: 7, 8, 9, × -->
+                        <Button Grid.Row="2" Grid.Column="0" Content="7"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="7"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="2" Grid.Column="1" Content="8"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="8"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="2" Grid.Column="2" Content="9"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="9"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="2" Grid.Column="3" Content="×"
+                                Command="{Binding OperationCommand}"
+                                CommandParameter="×"
+                                Style="{StaticResource CalcButtonStyle}"/>
+
+                        <!-- Rând 3: 4, 5, 6, - -->
+                        <Button Grid.Row="3" Grid.Column="0" Content="4"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="4"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="3" Grid.Column="1" Content="5"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="5"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="3" Grid.Column="2" Content="6"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="6"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="3" Grid.Column="3" Content="-"
+                                Command="{Binding OperationCommand}"
+                                CommandParameter="-"
+                                Style="{StaticResource CalcButtonStyle}"/>
+
+                        <!-- Rând 4: 1, 2, 3, + -->
+                        <Button Grid.Row="4" Grid.Column="0" Content="1"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="1"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="4" Grid.Column="1" Content="2"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="2"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="4" Grid.Column="2" Content="3"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="3"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="4" Grid.Column="3" Content="+"
+                                Command="{Binding OperationCommand}"
+                                CommandParameter="+"
+                                Style="{StaticResource CalcButtonStyle}"/>
+
+                        <!-- Rând 5: ±, 0, ., = -->
+                        <Button Grid.Row="5" Grid.Column="0" Content="±"
+                                Command="{Binding SignCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="5" Grid.Column="1" Content="0"
+                                Command="{Binding DigitCommand}"
+                                CommandParameter="0"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="5" Grid.Column="2" Content="."
+                                Command="{Binding DecimalCommand}"
+                                Style="{StaticResource CalcButtonStyle}"/>
+                        <Button Grid.Row="5" Grid.Column="3" Content="="
+                                Command="{Binding EqualsCommand}"
+                                Style="{StaticResource EqualsButtonStyle}"/>
+                    </Grid>
+                </Grid>
+
+                <!-- Programmer Panel -->
+                <Grid x:Name="ProgrammerPanel" Visibility="{Binding IsProgrammerMode, Converter={StaticResource BoolToVis}}">
+                    <!-- UI specific pentru modul Programmer -->
+                    <TextBlock Text="Programmer Mode" 
+                               Foreground="White" 
+                               FontSize="24" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"/>
+                </Grid>
+            </Grid>
+
+            <!-- POPUP pentru memoria calculatorului -->
+            <Popup x:Name="MemoryPopup"
+                   IsOpen="{Binding IsMemoryPanelVisible}"
+                   PlacementTarget="{Binding ElementName=MemoryButton}"
+                   Placement="Bottom"
+                   StaysOpen="False"
+                   AllowsTransparency="True">
+                <Border Background="#FF2D2D30" 
+                        BorderBrush="#FF3E3E42" 
+                        BorderThickness="1"
+                        CornerRadius="8" 
+                        Padding="10"
+                        MaxHeight="200"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200">
+                        <StackPanel>
+                            <TextBlock Text="Valori în memorie:" 
+                                       Foreground="White" 
+                                       Margin="0,0,0,5"
+                                       FontWeight="Bold"/>
+                            <ItemsControl ItemsSource="{Binding MemoryStack}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding}"
+                                                Command="{Binding DataContext.SelectMemoryItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource CalcButtonStyle}"
+                                                Margin="0,2,0,2"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Popup>
+        </Grid>
+    </DockPanel>
+</Window>
