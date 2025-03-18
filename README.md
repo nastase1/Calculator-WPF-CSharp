@@ -14,16 +14,15 @@ This is a **feature-rich calculator** application developed in **C#** using **Wi
 
 ### Programmer Mode
 - Binary, Octal, Decimal, and Hexadecimal conversions
-- Bitwise operations (AND, OR, XOR, NOT, Shift Left, Shift Right)
 - Logical and arithmetic calculations tailored for programmers
 
 ### File Menu
-- **Save calculations** to a file
-- **Load previous calculations** from a file
+- Cut/Copy/Paste Functionalities
+- Select between Standard and Programmer calculator
+- DigitGrouping selection
 
 ### Help Menu
-- Instructions on how to use different modes
-- About section with application details
+- **About** section with information about the person that made this calculator
 
 ## Technologies Used
 
