@@ -2,14 +2,28 @@
 
 ## Description
 
-This is a simple calculator application developed in **C#** using **Windows Presentation Foundation (WPF)**. The application provides basic arithmetic operations and a user-friendly interface.
+This is a **feature-rich calculator** application developed in **C#** using **Windows Presentation Foundation (WPF)**. The application supports **Standard mode**, **Programmer mode**, and includes additional functionalities in the **File** and **Help** menus.
 
 ## Features
 
-- Addition, subtraction, multiplication, and division
+### Standard Mode
+- Basic arithmetic operations: **Addition, Subtraction, Multiplication, Division**
 - Clear button to reset calculations
+- Memory functions (MC, MR, M+, M-)
 - Responsive and intuitive UI
-- Developed with MVVM pattern for better maintainability
+
+### Programmer Mode
+- Binary, Octal, Decimal, and Hexadecimal conversions
+- Bitwise operations (AND, OR, XOR, NOT, Shift Left, Shift Right)
+- Logical and arithmetic calculations tailored for programmers
+
+### File Menu
+- **Save calculations** to a file
+- **Load previous calculations** from a file
+
+### Help Menu
+- Instructions on how to use different modes
+- About section with application details
 
 ## Technologies Used
 
@@ -17,24 +31,20 @@ This is a simple calculator application developed in **C#** using **Windows Pres
 - **WPF (Windows Presentation Foundation)**
 - **XAML for UI design**
 
-## Screenshot
+## Screenshots
 
-![image](https://github.com/user-attachments/assets/faea4a8e-9d37-4913-8ec6-a1b6ecf953ea)
+### Standard Mode
+![Standard Mode](![image](https://github.com/user-attachments/assets/19e38a8a-48e6-4364-af1b-747b4a88b279)
+)
 
+### Programmer Mode
+![Programmer Mode](![image](https://github.com/user-attachments/assets/b985578d-ce18-45ea-9533-c3611e342a27)
+)
 
-## Installation
+### File Menu
+![File Menu](![image](https://github.com/user-attachments/assets/ff0699b4-5d99-470a-a48d-af70b53f2301)
+)
 
-1. Clone this repository:
-   ```sh
-   git clone https://github.com/your-username/Calculator-WPF-CSharp.git
-   ```
-2. Open the project in **Visual Studio**.
-3. Build and run the application.
-
-## Usage
-
-1. Enter numbers using the on-screen buttons or keyboard.
-2. Choose an operation (+, -, \*, /).
-3. Press `=` to see the result.
-4. Use `C` to clear the input.
-
+### Help Menu
+![Help Menu](![image](https://github.com/user-attachments/assets/81b270b3-6cc0-48fb-a78b-e3be4e3d0707)
+)
