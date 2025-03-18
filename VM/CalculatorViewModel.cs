@@ -36,6 +36,35 @@ namespace Calculator.VM
             }
         }
 
+        private string _hexDisplay = "0";
+        public string HexDisplay
+        {
+            get => _hexDisplay;
+            set { _hexDisplay = value; OnPropertyChanged(nameof(HexDisplay)); }
+        }
+
+        private string _decDisplay = "0";
+        public string DecDisplay
+        {
+            get => _decDisplay;
+            set { _decDisplay = value; OnPropertyChanged(nameof(DecDisplay)); }
+        }
+
+        private string _octDisplay = "0";
+        public string OctDisplay
+        {
+            get => _octDisplay;
+            set { _octDisplay = value; OnPropertyChanged(nameof(OctDisplay)); }
+        }
+
+        private string _binDisplay = "0";
+        public string BinDisplay
+        {
+            get => _binDisplay;
+            set { _binDisplay = value; OnPropertyChanged(nameof(BinDisplay)); }
+        }
+
+
         private bool _isProgrammerMode;
         public bool IsProgrammerMode
         {
@@ -217,6 +246,9 @@ namespace Calculator.VM
 
             // Dacă digit grouping este activ, formatează numărul; altfel, folosește valoarea raw
             Display = IsDigitGroupingEnabled ? FormatNumber(_currentValue) : currentRaw;
+
+            if (IsProgrammerMode)
+                UpdateProgrammerDisplays();
         }
 
 
@@ -299,6 +331,9 @@ namespace Calculator.VM
                 _operation = "";
                 _justPressedOperator = true;
                 _currentValue = result;
+
+                if (IsProgrammerMode)
+                    UpdateProgrammerDisplays();
             }
         }
 
@@ -393,6 +428,17 @@ namespace Calculator.VM
             return IsDigitGroupingEnabled ? number.ToString("#,##0.########", System.Globalization.CultureInfo.InvariantCulture)
                                           : number.ToString();
         }
+
+        private void UpdateProgrammerDisplays()
+        {
+            // Pentru modul programmer, vom considera _currentValue ca fiind un număr întreg
+            long intVal = (long)_currentValue;
+            HexDisplay = intVal.ToString("X");
+            DecDisplay = intVal.ToString();
+            OctDisplay = Convert.ToString(intVal, 8);
+            BinDisplay = Convert.ToString(intVal, 2);
+        }
+
 
 
 
