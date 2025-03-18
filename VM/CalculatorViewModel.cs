@@ -12,6 +12,14 @@ using System.Windows.Media.Animation;
 
 namespace Calculator.VM
 {
+    public enum NumberBase
+    {
+        Hex,
+        Dec,
+        Oct,
+        Bin
+    }
+
     public class CalculatorViewModel : INotifyPropertyChanged
     {
         #region Initializari
@@ -24,6 +32,8 @@ namespace Calculator.VM
         private bool _justPressedOperator = false;
         private string _clipboard = "";
 
+        private string _programmerInput = "";
+
         private bool _isDigitGroupingEnabled;
         public bool IsDigitGroupingEnabled
         {
@@ -32,38 +42,12 @@ namespace Calculator.VM
             {
                 _isDigitGroupingEnabled = value;
                 OnPropertyChanged(nameof(IsDigitGroupingEnabled));
-                Display = FormatNumber(_currentValue);
+                Settings.Default.DigitGroupingEnabled = value;
+                Settings.Default.Save();
+                if (!IsProgrammerMode)
+                    Display = FormatNumber(_currentValue);
             }
         }
-
-        private string _hexDisplay = "0";
-        public string HexDisplay
-        {
-            get => _hexDisplay;
-            set { _hexDisplay = value; OnPropertyChanged(nameof(HexDisplay)); }
-        }
-
-        private string _decDisplay = "0";
-        public string DecDisplay
-        {
-            get => _decDisplay;
-            set { _decDisplay = value; OnPropertyChanged(nameof(DecDisplay)); }
-        }
-
-        private string _octDisplay = "0";
-        public string OctDisplay
-        {
-            get => _octDisplay;
-            set { _octDisplay = value; OnPropertyChanged(nameof(OctDisplay)); }
-        }
-
-        private string _binDisplay = "0";
-        public string BinDisplay
-        {
-            get => _binDisplay;
-            set { _binDisplay = value; OnPropertyChanged(nameof(BinDisplay)); }
-        }
-
 
         private bool _isProgrammerMode;
         public bool IsProgrammerMode
@@ -73,10 +57,83 @@ namespace Calculator.VM
             {
                 _isProgrammerMode = value;
                 OnPropertyChanged(nameof(IsProgrammerMode));
-                // Poți adăuga logică suplimentară aici (ex. resetare display etc.)
+                Settings.Default.IsProgrammerMode = value;
+                Settings.Default.Save();
+                OnPropertyChanged(nameof(ModeLabel));
+                if (IsProgrammerMode)
+                    _programmerInput = "";
+                else
+                    _programmerInput = "";
             }
         }
 
+        public string ModeLabel => IsProgrammerMode ? "Programmer" : "Standard";
+
+        private string _hexDisplay;
+        public string HexDisplay
+        {
+            get => _hexDisplay;
+            set
+            {
+                _hexDisplay = value;
+                OnPropertyChanged(nameof(HexDisplay));
+            }
+        }
+
+        private string _decDisplay;
+        public string DecDisplay
+        {
+            get => _decDisplay;
+            set
+            {
+                _decDisplay = value;
+                OnPropertyChanged(nameof(DecDisplay));
+            }
+        }
+
+        private string _octDisplay;
+        public string OctDisplay
+        {
+            get => _octDisplay;
+            set
+            {
+                _octDisplay = value;
+                OnPropertyChanged(nameof(OctDisplay));
+            }
+        }
+
+        private string _binDisplay;
+        public string BinDisplay
+        {
+            get => _binDisplay;
+            set
+            {
+                _binDisplay = value;
+                OnPropertyChanged(nameof(BinDisplay));
+            }
+        }
+
+        private NumberBase _activeBase = NumberBase.Dec;
+        public NumberBase ActiveBase
+        {
+            get => _activeBase;
+            set
+            {
+                _activeBase = value;
+                OnPropertyChanged(nameof(ActiveBase));
+                // Salvează setarea ca string
+                Settings.Default.ActiveNumberBase = value switch
+                {
+                    NumberBase.Hex => "Hex",
+                    NumberBase.Oct => "Oct",
+                    NumberBase.Bin => "Bin",
+                    _ => "Dec",
+                };
+                Settings.Default.Save();
+                UpdateProgrammerInputFromCurrentValue();
+                UpdateProgrammerDisplays();
+            }
+        }
 
         // -- MEMORIE: stivă de valori --
         public ObservableCollection<double> MemoryStack { get; }
@@ -103,7 +160,7 @@ namespace Calculator.VM
 
         public string Display
         {
-            get => _display;
+            get => _display; 
             set { _display = value; OnPropertyChanged(nameof(Display)); }
         }
 
@@ -113,6 +170,8 @@ namespace Calculator.VM
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        #region Comenzi
 
         // --Comenzi pentru Informatii--
 
@@ -151,36 +210,54 @@ namespace Calculator.VM
         public ICommand ProgrammerModeCommand { get; }
         public ICommand StandardModeCommand { get; }
 
+        // -- Comanda pentru setrea bazei active --
+        public ICommand SetActiveBaseCommand { get; }
+
+        #endregion
 
         #endregion
 
         #region Constructor
         public CalculatorViewModel()
         {
+            IsDigitGroupingEnabled = Settings.Default.DigitGroupingEnabled;
+            IsProgrammerMode = Settings.Default.IsProgrammerMode;
+
+            string activeBase = Settings.Default.ActiveNumberBase;
+
+            ActiveBase =activeBase.ToLower() switch
+            {
+                "hex" => NumberBase.Hex,
+                "dec" => NumberBase.Dec,
+                "oct" => NumberBase.Oct,
+                "bin" => NumberBase.Bin,
+                _ => NumberBase.Dec
+            };
+
             CutCommand = new RelayCommand(_ =>
             {
-                // Copiază conținutul afișajului în clipboard și apoi șterge afișajul.
                 _clipboard = Display;
                 Display = "";
                 double.TryParse(Display, out _currentValue);
+                if(IsProgrammerMode)
+                    _programmerInput = "";
             });
 
             CopyCommand = new RelayCommand(_ =>
             {
-                // Copiază conținutul afișajului în clipboard.
                 _clipboard = Display;
             });
 
             PasteCommand = new RelayCommand(_ =>
             {
-                // Setează afișajul cu conținutul din clipboard.
                 Display = _clipboard;
                 double.TryParse(Display, out _currentValue);
+                if(IsProgrammerMode)
+                    _programmerInput = Display;
             });
 
             DigitGroupingCommand = new RelayCommand(_ =>
             {
-                // Toggle digit grouping
                 IsDigitGroupingEnabled = !IsDigitGroupingEnabled;
             });
 
@@ -190,11 +267,41 @@ namespace Calculator.VM
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             });
 
-            ProgrammerModeCommand = new RelayCommand(_ => IsProgrammerMode = true);
-            StandardModeCommand = new RelayCommand(_ => IsProgrammerMode = false);
+            ProgrammerModeCommand = new RelayCommand(_ =>
+            {
+                IsProgrammerMode = true;
+                ResetDisplay();
+            });
+
+            StandardModeCommand = new RelayCommand(_ =>
+            {
+                IsProgrammerMode = false;
+                ResetDisplay();
+            });
+
+            SetActiveBaseCommand = new RelayCommand(param =>
+            {
+                if (param is string baseStr)
+                {
+                    switch(baseStr.ToLower())
+                    {
+                        case "hex":
+                            ActiveBase = NumberBase.Hex;
+                            break;
+                        case "dec":
+                            ActiveBase = NumberBase.Dec;
+                            break;
+                        case "oct":
+                            ActiveBase = NumberBase.Oct;
+                            break;
+                        case "bin":
+                            ActiveBase = NumberBase.Bin;
+                            break;
+                    }
+                }
+            });
 
             IsProgrammerMode = false;
-            
             IsMemoryPanelVisible = false;
 
             // Inițializare comenzi Calcul
@@ -228,32 +335,63 @@ namespace Calculator.VM
         private void DigitExecute(object parameter)
         {
             string digit = parameter as string;
-            // Elimină separatorii de mii din Display pentru a evita concatenări greșite
-            string currentRaw = Display.Replace(",", "");
-
-            if (_justPressedOperator || currentRaw == "0")
+            if (IsProgrammerMode)
             {
-                currentRaw = digit;
-                _justPressedOperator = false;
+
+                if (!IsValidDigitForActiveBase(digit))
+                    return;
+
+                if (_justPressedOperator || string.IsNullOrEmpty(_programmerInput))
+                {
+                    _programmerInput = digit;
+                    _justPressedOperator = false;
+                }
+                else
+                {
+                    _programmerInput += digit;
+                }
+                try
+                {
+                    int baseVal = ActiveBase switch
+                    {
+                        NumberBase.Hex => 16,
+                        NumberBase.Oct => 8,
+                        NumberBase.Bin => 2,
+                        _ => 10,
+                    };
+                    _currentValue = Convert.ToDouble(Convert.ToInt64(_programmerInput, baseVal));
+                }
+                catch
+                {
+                    _currentValue = 0;
+                }
+                Display = _programmerInput.ToUpper();
+                UpdateProgrammerDisplays();
             }
             else
             {
-                currentRaw += digit;
+                string currentRaw = Display.Replace(",", "");
+                if (_justPressedOperator || currentRaw == "0")
+                {
+                    currentRaw = digit;
+                    _justPressedOperator = false;
+                }
+                else
+                {
+                    currentRaw += digit;
+                }
+                double.TryParse(currentRaw, out _currentValue);
+                Display = IsDigitGroupingEnabled ? FormatNumber(_currentValue) : currentRaw;
             }
 
-            // Actualizează valoarea curentă
-            double.TryParse(currentRaw, out _currentValue);
-
-            // Dacă digit grouping este activ, formatează numărul; altfel, folosește valoarea raw
-            Display = IsDigitGroupingEnabled ? FormatNumber(_currentValue) : currentRaw;
-
-            if (IsProgrammerMode)
-                UpdateProgrammerDisplays();
         }
 
 
         private void DecimalExecute(object parameter)
         {
+            if (IsProgrammerMode)
+                return;
+
             if (_justPressedOperator)
             {
                 Display = "0.";
@@ -286,7 +424,16 @@ namespace Calculator.VM
                 PreviousExpression = $"{_lastValue} {op}";
             }
 
-            Display = FormatNumber(_lastValue);
+            if (IsProgrammerMode)
+            {
+                _programmerInput = Convert.ToString((long)_lastValue, ActiveBase switch { NumberBase.Hex => 16, NumberBase.Dec => 10, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 }).ToUpper();
+                Display = _programmerInput;
+                UpdateProgrammerDisplays();
+            }
+            else
+            {
+                Display = FormatNumber(_lastValue);
+            }
             _justPressedOperator = true;
         }
 
@@ -316,8 +463,19 @@ namespace Calculator.VM
                     val = Math.Sqrt(val);
                     break;
             }
-            Display = FormatNumber(val);
-            double.TryParse(Display, out _currentValue);
+            if (IsProgrammerMode)
+            {
+                long intVal = (long)val;
+                _programmerInput = Convert.ToString(intVal, ActiveBase switch { NumberBase.Hex => 16, NumberBase.Dec => 10, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 }).ToUpper();
+                Display = _programmerInput;
+                _currentValue = intVal;
+                UpdateProgrammerDisplays();
+            }
+            else
+            {
+                Display = FormatNumber(val);
+                double.TryParse(Display, out _currentValue);
+            }
         }
 
         private void EqualsExecute(object parameter)
@@ -327,13 +485,22 @@ namespace Calculator.VM
                 double result = Calculeaza(_lastValue, _currentValue, _operation);
                 PreviousExpression = $"{_lastValue} {_operation} {_currentValue} ";
                 _lastValue = result;
-                Display = FormatNumber(result);
+                if (IsProgrammerMode)
+                {
+                    int baseVal = ActiveBase switch { NumberBase.Hex => 16, NumberBase.Dec => 10, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 };
+                    long intResult = (long)result;
+                    _programmerInput = Convert.ToString(intResult, baseVal).ToUpper();
+                    Display = _programmerInput;
+                    _currentValue = intResult;
+                    UpdateProgrammerDisplays();
+                }
+                else
+                {
+                    Display = FormatNumber(result);
+                    _currentValue = result;
+                }
                 _operation = "";
                 _justPressedOperator = true;
-                _currentValue = result;
-
-                if (IsProgrammerMode)
-                    UpdateProgrammerDisplays();
             }
         }
 
@@ -345,12 +512,20 @@ namespace Calculator.VM
             Display = "0";
             PreviousExpression = "";
             _justPressedOperator = false;
+            if (IsProgrammerMode)
+            {
+                _programmerInput = "";
+                UpdateProgrammerDisplays();
+            }
+
         }
 
         private void ClearEntryExecute(object parameter)
         {
             Display = "0";
             _currentValue = 0;
+            if(IsProgrammerMode)
+                _programmerInput = "";
         }
 
         private void SignExecute(object parameter)
@@ -363,8 +538,20 @@ namespace Calculator.VM
             if (double.TryParse(Display, out double val))
             {
                 val = -val;
-                Display = FormatNumber(val);
-                _currentValue = val;
+                if (IsProgrammerMode)
+                {
+                    long intVal = (long)val;
+                    int baseVal = ActiveBase switch { NumberBase.Hex => 16, NumberBase.Dec => 10, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 };
+                    _programmerInput = Convert.ToString(intVal, baseVal).ToUpper();
+                    Display = _programmerInput;
+                    _currentValue = intVal;
+                    UpdateProgrammerDisplays();
+                }
+                else
+                {
+                    Display = FormatNumber(val);
+                    _currentValue = val;
+                }
             }
         }
 
@@ -374,17 +561,41 @@ namespace Calculator.VM
             {
                 Display = "0";
                 _currentValue = 0;
+                if(IsProgrammerMode)
+                    _programmerInput = "";
                 return;
             }
-            if (Display.Length > 1)
+            if (IsProgrammerMode)
             {
-                Display = Display.Substring(0, Display.Length - 1);
+                if (!string.IsNullOrEmpty(_programmerInput))
+                {
+                    _programmerInput = _programmerInput.Substring(0, _programmerInput.Length - 1);
+                    if (string.IsNullOrEmpty(_programmerInput))
+                    {
+                        Display = "0";
+                        _currentValue = 0;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            int baseVal = ActiveBase switch { NumberBase.Hex => 16, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 };
+                            _currentValue = Convert.ToDouble(Convert.ToInt64(_programmerInput, baseVal));
+                        }
+                        catch { _currentValue = 0; }
+                        Display = _programmerInput.ToUpper();
+                    }
+                    UpdateProgrammerDisplays();
+                }
             }
             else
             {
-                Display = "0";
+                if (Display.Length > 1)
+                    Display = Display.Substring(0, Display.Length - 1);
+                else
+                    Display = "0";
+                double.TryParse(Display, out _currentValue);
             }
-            double.TryParse(Display, out _currentValue);
         }
 
         private void PercentExecute(object parameter)
@@ -405,7 +616,18 @@ namespace Calculator.VM
                 _currentValue /= 100;
             }
 
-            Display = FormatNumber(_currentValue);
+            if (IsProgrammerMode)
+            {
+                int baseVal = ActiveBase switch { NumberBase.Hex => 16, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 };
+                long intVal = (long)_currentValue;
+                _programmerInput = Convert.ToString(intVal, baseVal).ToUpper();
+                Display = _programmerInput;
+                UpdateProgrammerDisplays();
+            }
+            else
+            {
+                Display = FormatNumber(_currentValue);
+            }
             _justPressedOperator = true;
         }
 
@@ -423,8 +645,6 @@ namespace Calculator.VM
 
         private string FormatNumber(double number)
         {
-            // Formatul "#,##0.########" inserează virgule la fiecare 3 cifre în partea întreagă,
-            // iar partea zecimală se afișează doar dacă există.
             return IsDigitGroupingEnabled ? number.ToString("#,##0.########", System.Globalization.CultureInfo.InvariantCulture)
                                           : number.ToString();
         }
@@ -439,7 +659,48 @@ namespace Calculator.VM
             BinDisplay = Convert.ToString(intVal, 2);
         }
 
+        private void UpdateProgrammerInputFromCurrentValue()
+        {
+            int baseVal = ActiveBase switch { NumberBase.Hex => 16, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 };
+            long intVal = (long)_currentValue;
+            _programmerInput = Convert.ToString(intVal, baseVal).ToUpper();
+            Display = _programmerInput;
+        }
 
+        private bool IsValidDigitForActiveBase(string digit)
+        {
+            if (string.IsNullOrEmpty(digit))
+                return false;
+
+            digit = digit.ToUpper();
+
+            switch (ActiveBase)
+            {
+                case NumberBase.Bin:
+                    return digit == "0" || digit == "1";
+                case NumberBase.Oct:
+                    return "01234567".Contains(digit);
+                case NumberBase.Dec:
+                    return "0123456789".Contains(digit);
+                case NumberBase.Hex:
+                    return "0123456789ABCDEF".Contains(digit);
+                default:
+                    return false;
+            }
+        }
+
+        private void ResetDisplay()
+        {
+            Display = "0";
+            _currentValue = 0;
+            _programmerInput = "";
+            PreviousExpression = "";
+
+            HexDisplay = "";
+            DecDisplay = "";
+            OctDisplay = "";
+            BinDisplay = "";
+        }
 
 
         #endregion
@@ -488,7 +749,16 @@ namespace Calculator.VM
             if (MemoryStack.Any())
             {
                 double val = MemoryStack.Last();
-                Display = FormatNumber(val);
+                if (IsProgrammerMode)
+                {
+                    int baseVal = ActiveBase switch { NumberBase.Hex => 16, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 };
+                    _programmerInput = Convert.ToString((long)val, baseVal).ToUpper();
+                    Display = _programmerInput;
+                }
+                else
+                {
+                    Display = FormatNumber(val);
+                }
                 _currentValue = val;
             }
         }
@@ -499,7 +769,16 @@ namespace Calculator.VM
         {
             if (parameter is double memVal)
             {
-                Display = FormatNumber(memVal);
+                if (IsProgrammerMode)
+                {
+                    int baseVal = ActiveBase switch { NumberBase.Hex => 16, NumberBase.Oct => 8, NumberBase.Bin => 2, _ => 10 };
+                    _programmerInput = Convert.ToString((long)memVal, baseVal).ToUpper();
+                    Display = _programmerInput;
+                }
+                else
+                {
+                    Display = FormatNumber(memVal);
+                }
                 _currentValue = memVal;
             }
         }
